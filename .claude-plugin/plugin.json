@@ -1,0 +1,9 @@
+{
+  "name": "umans-vision-handoff",
+  "version": "0.1.0",
+  "description": "Adds a view_image tool that hands images to a native-vision Umans model (Kimi first, then fallbacks) for providers like GLM 5.2 whose vision is via-handoff only.",
+  "author": { "name": "karutoil" },
+  "license": "MIT",
+  "keywords": ["umans", "vision", "glm", "kimi", "image", "handoff"],
+  "mcpServers": "./.mcp.json"
+}

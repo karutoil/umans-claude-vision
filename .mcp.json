@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "umans-vision": {
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/mcp/server.js"],
+      "env": {
+        "UMANS_BASE_URL": "${UMANS_BASE_URL:-https://api.code.umans.ai/v1}",
+        "UMANS_API_KEY": "${UMANS_API_KEY}"
+      }
+    }
+  }
+}
