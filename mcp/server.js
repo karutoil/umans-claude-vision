@@ -6,20 +6,49 @@
 // Claude Code uses — not the OpenAI route (which 503s for vision).
 "use strict";
 
+const fs = require("fs");
+const path = require("path");
+
 const BASE = (process.env.ANTHROPIC_BASE_URL || "https://api.code.umans.ai/").replace(/\/+$/, "");
 const TOKEN = process.env.ANTHROPIC_AUTH_TOKEN || process.env.UMANS_API_KEY;
 // umans CLI sets these; sonnet=umans-coder (vision), haiku=umans-flash (vision).
 const PRIMARY = process.env.ANTHROPIC_DEFAULT_SONNET_MODEL || "umans-coder";
 const FALLBACK = process.env.ANTHROPIC_DEFAULT_HAIKU_MODEL || "umans-flash";
 
+const MIME_BY_EXT = {
+  png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg",
+  gif: "image/gif", webp: "image/webp", bmp: "image/bmp", svg: "image/svg+xml",
+};
+
+// Always returns { media_type, data } in base64 — the Messages route's only
+// supported image format. Handles http(s):// (fetch), file:// and bare paths
+// (fs), and a caller-supplied base64 (passthrough).
 async function toBase64(image) {
-  if (image.base64) return { media_type: image.mime || "image/png", data: image.base64 };
-  if (!image.url) throw new Error("image.url or image.base64 required");
-  const res = await fetch(image.url);
-  if (!res.ok) throw new Error(`fetch image ${res.status}`);
-  const buf = Buffer.from(await res.arrayBuffer());
-  const mime = image.mime || res.headers.get("content-type") || "image/png";
-  return { media_type: mime, data: buf.toString("base64") };
+  if (image.base64)
+    return { media_type: image.mime || "image/png", data: image.base64 };
+
+  // Local file: a bare path, a file:// URL, or an explicit path field.
+  let filePath = image.path;
+  if (!filePath && image.url && image.url.startsWith("file://"))
+    filePath = decodeURIComponent(image.url.slice("file://".length));
+  else if (!filePath && image.url && !/^https?:\/\//.test(image.url))
+    filePath = image.url; // bare path
+
+  if (filePath) {
+    const buf = fs.readFileSync(filePath);
+    const ext = path.extname(filePath).slice(1).toLowerCase();
+    return { media_type: image.mime || MIME_BY_EXT[ext] || "image/png", data: buf.toString("base64") };
+  }
+
+  if (image.url) {
+    const res = await fetch(image.url);
+    if (!res.ok) throw new Error(`fetch image ${res.status}`);
+    const buf = Buffer.from(await res.arrayBuffer());
+    const mime = image.mime || res.headers.get("content-type") || "image/png";
+    return { media_type: mime, data: buf.toString("base64") };
+  }
+
+  throw new Error("image.base64, image.path, or image.url required");
 }
 
 async function describeWith(model, image, prompt) {
@@ -53,8 +82,8 @@ async function describeWith(model, image, prompt) {
 }
 
 async function viewImage({ image, prompt }) {
-  if (!image || (!image.url && !image.base64))
-    throw new Error("image.url or image.base64 required");
+  if (!image || (!image.url && !image.base64 && !image.path))
+    throw new Error("image.base64, image.path, or image.url required");
   // sonnet first (Kimi-based, native vision), haiku fallback.
   for (const m of [PRIMARY, FALLBACK]) {
     try { return await describeWith(m, image, prompt); }
@@ -72,10 +101,11 @@ const TOOLS = [{
     properties: {
       image: {
         type: "object",
-        description: "The image to read. Provide either url or base64 (+ mime).",
+        description: "The image to read. For local files, pass base64 (preferred) or path. Also accepts http(s):// urls and file:// urls. Always sent to the vision model as base64.",
         properties: {
-          url: { type: "string" },
-          base64: { type: "string" },
+          base64: { type: "string", description: "Base64-encoded image data. PREFERRED for local files." },
+          path: { type: "string", description: "Local file path (read from disk)" },
+          url: { type: "string", description: "http(s)://, file://, or bare local path" },
           mime: { type: "string", default: "image/png" },
         },
       },
