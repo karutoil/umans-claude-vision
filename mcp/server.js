@@ -6,7 +6,12 @@
 
 const UMANS_BASE_URL =
   process.env.UMANS_BASE_URL || "https://api.code.umans.ai/v1";
-const UMANS_API_KEY = process.env.UMANS_API_KEY || process.env.UMANS_API_TOKEN;
+// `umans claude` sets ANTHROPIC_AUTH_TOKEN; fall back to it so the plugin
+// works with zero extra config when launched through `umans claude`.
+const UMANS_API_KEY =
+  process.env.UMANS_API_KEY ||
+  process.env.UMANS_API_TOKEN ||
+  process.env.ANTHROPIC_AUTH_TOKEN;
 const MODELS_INFO_URL = "https://api.code.umans.ai/v1/models/info";
 
 // Preferred families, in order. Kimi first per the brief.

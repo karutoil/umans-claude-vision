@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
+  "name": "umans-vision-handoff",
+  "version": "0.1.0",
+  "description": "Plugin(s) for routing image reads to native-vision Umans models (Kimi first) when the active model is text-only (e.g. GLM 5.2 via-handoff).",
+  "owner": {
+    "name": "karutoil",
+    "url": "https://github.com/karutoil"
+  },
+  "plugins": [
+    {
+      "name": "umans-vision-handoff",
+      "description": "Adds a view_image tool that hands images to a native-vision Umans model (Kimi first, with fallbacks) for text-only providers like GLM 5.2.",
+      "version": "0.1.0",
+      "author": {
+        "name": "karutoil"
+      },
+      "source": ".",
+      "category": "productivity"
+    }
+  ]
+}
